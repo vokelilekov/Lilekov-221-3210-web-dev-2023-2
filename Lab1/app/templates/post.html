@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }}</title>
+</head>
+<body>
+    <h1>{{ post.title }}</h1>
+    <p>Author: {{ post.author }}</p>
+    <p>Date: {{ post.date }}</p>
+    <img src="{{ url_for('static', filename='images/' + post.image_id) }}" alt="Post Image">
+    <p>{{ post.text }}</p>
+
+    <h2>Leave a Comment</h2>
+    <form action="" method="post">
+        <textarea name="comment" rows="4" cols="50"></textarea><br>
+        <input type="submit" value="Submit">
+    </form>
+
+    <h2>Comments</h2>
+    {% for comment in post.comments %}
+        <div>
+            <p>{{ comment.author }}</p>
+            <p>{{ comment.text }}</p>
+            {% if comment.replies %}
+                <ul>
+                    {% for reply in comment.replies %}
+                        <li>
+                            <p>{{ reply.author }}</p>
+                            <p>{{ reply.text }}</p>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        </div>
+    {% endfor %}
+</body>
+</html>

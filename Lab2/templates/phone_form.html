@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Phone Form{% endblock %}
+{% block heading %}Phone Form{% endblock %}
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <form method="post" class="needs-validation" novalidate>
+                <div class="form-group">
+                    <input type="text" name="phone_number" class="form-control form-control-sm{% if error %} is-invalid{% endif %}" placeholder="Введите номер телефона" required>
+                    {% if error %}
+                    <div class="invalid-feedback">{{ error }}</div>
+                    {% endif %}
+                </div>
+                <button type="submit" class="btn btn-primary btn-block">Проверить</button>
+            </form>
+            {% if formatted_number %}
+            <p class="mt-3">Форматированный номер телефона: {{ formatted_number }}</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

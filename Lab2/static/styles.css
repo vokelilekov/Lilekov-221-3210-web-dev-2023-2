@@ -1,0 +1,15 @@
+body {
+    font-size: 1.25rem;
+    background-color: #f8f9fa;
+    color: #333;
+}
+
+.header {
+    background-color: #343a40;
+    color: #fff;
+}
+
+.footer {
+    background-color: #343a40;
+    color: #fff; 
+}
