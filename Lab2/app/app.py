@@ -31,23 +31,25 @@ def validate_phone_number(phone_number):
     cleaned_number = ''.join(filter(str.isdigit, phone_number))
     if not cleaned_number:
         return "Введите номер телефона"
-    if len(cleaned_number) == 10:
+    elif len(cleaned_number) == 10:
         return None
-    if len(cleaned_number) == 11 and cleaned_number.startswith(('7', '8')):
+    elif len(cleaned_number) == 11 and cleaned_number.startswith(('7', '8')):
         return None
-    return "Недопустимый ввод. Неверное количество цифр или некорректный формат номера."
+    elif not phone_number.replace('+', '').replace('-', '').replace('(', '').replace(')', '').replace('.', '').replace(' ', '').isdigit():
+        return "Недопустимый ввод. В номере телефона встречаются недопустимые символы."
+    else:
+        return "Недопустимый ввод. Неверное количество цифр"
+    
 
 def format_phone_number(phone_number):
     cleaned_number = ''.join(filter(str.isdigit, phone_number))
-    if len(cleaned_number) == 11 and cleaned_number.startswith('8'):
-        cleaned_number = '7' + cleaned_number[1:]
+    if len(cleaned_number) == 11 and cleaned_number.startswith('7'):
+        cleaned_number = '8' + cleaned_number[1:]
     
     if len(cleaned_number) == 10:
-        formatted_number = f'7-{cleaned_number[:3]}-{cleaned_number[3:6]}-{cleaned_number[6:8]}-{cleaned_number[8:]}'
+        formatted_number = f'8-{cleaned_number[:3]}-{cleaned_number[3:6]}-{cleaned_number[6:8]}-{cleaned_number[8:]}'
     elif len(cleaned_number) == 11:
         formatted_number = f'{cleaned_number[:1]}-{cleaned_number[1:4]}-{cleaned_number[4:7]}-{cleaned_number[7:9]}-{cleaned_number[9:]}'
-    else:
-        return "Недопустимый ввод. Неверное количество цифр или некорректный формат номера."
     
     return formatted_number
 
