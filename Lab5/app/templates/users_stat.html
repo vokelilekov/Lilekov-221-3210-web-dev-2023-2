@@ -1,0 +1,21 @@
+{% extends 'logs_base.html' %}
+
+{% block tab_content %}
+<h2>Статистика посещений по пользователям</h2>
+<table class="table">
+    <thead>
+      <th>#</th>  
+      <th>Пользователь</th>  
+      <th>Количество посещений</th>  
+    </thead>
+    <tbody>
+        {% for log in logs %}
+        <tr>
+            <td>{{ loop.index }}</td>
+            <td>{{ log.login or "Неавторизованные пользователи" }}</td>
+            <td>{{ log.visit_count }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}
