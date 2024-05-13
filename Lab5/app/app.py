@@ -5,6 +5,7 @@ from mysql.connector.errors import DatabaseError
 from werkzeug.security import check_password_hash, generate_password_hash
 import re
 import hashlib
+from functools import wraps
 
 app = Flask(__name__)
 application = app
@@ -19,10 +20,29 @@ login_manager.login_message = "Войдите, чтобы просматрива
 login_manager.login_message_category = "warning"
 
 class User(UserMixin):
-    def __init__(self, user_id, login, password_hash=None):
+    def __init__(self, user_id, login, role_id, role_name, password_hash=None):
         self.id = user_id
         self.login = login
         self.password_hash = password_hash
+        self.role_id = role_id
+        self.role_name = role_name
+
+def check_rights(action):
+    def decorator(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            user_role = current_user.role_name
+            allowed_actions = {
+                'Admin': ['create_user', 'edit_user', 'view_user', 'delete_user', 'view_visit_log'],
+                'User': ['edit_own_data', 'view_own_profile', 'view_own_visits']
+            }
+            if action in allowed_actions.get(user_role, []):
+                return f(*args, **kwargs)
+            else:
+                flash('У вас недостаточно прав для доступа к данной странице.', 'danger')
+                return redirect(url_for('index'))
+        return decorated_function
+    return decorator
 
 
 def get_user_list():
@@ -41,17 +61,18 @@ def get_roles():
 
 @login_manager.user_loader
 def load_user(user_id):
-    query = "SELECT id, login, password_hash FROM users WHERE id=%s"
-
-    with db_connector.connect().cursor(named_tuple=True) as cursor:
-        cursor.execute(query, (user_id,))
-        user_data = cursor.fetchone()
-
-    if user_data:
-        return User(user_data.id, user_data.login, user_data.password_hash)
-    
+    query = "SELECT users.id, users.login, users.password_hash, roles.id as role_id, roles.name as role_name FROM users JOIN roles ON users.role_id = roles.id WHERE users.id = %s"
+    try:
+        with db_connector.connect().cursor(named_tuple=True) as cursor:
+            cursor.execute(query, (user_id,))
+            user_data = cursor.fetchone()
+            if user_data:
+                return User(user_id=user_data.id, login=user_data.login, role_id=user_data.role_id, role_name=user_data.role_name, password_hash=user_data.password_hash)
+            else:
+                print("No user found with ID:", user_id)  # Добавьте логирование или print для отладки
+    except Exception as e:
+        print("Database error:", e)  # Логирование ошибок базы данных
     return None
-
 
 @app.route('/login', methods=["GET", "POST"])
 def auth():
@@ -62,20 +83,18 @@ def auth():
     password = request.form.get("password", "")
     remember = request.form.get("remember_me") == "on"
 
-    query = 'SELECT id, login FROM users WHERE login=%s AND password_hash=SHA2(%s, 256)'
+    query = 'SELECT id, login, password_hash, role_id, (SELECT name FROM roles WHERE id=role_id) as role_name FROM users WHERE login=%s AND password_hash=SHA2(%s, 256)'
     
     print(query)
 
     with db_connector.connect().cursor(named_tuple=True) as cursor:
-
         cursor.execute(query, (login, password))
-
-        print(cursor.statement)
-
         user = cursor.fetchone()
 
     if user:
-        login_user(User(user.id, user.login), remember=remember)
+        # Создайте объект User, используя все необходимые поля
+        user_obj = User(user_id=user.id, login=user.login, role_id=user.role_id, role_name=user.role_name, password_hash=user.password_hash)
+        login_user(user_obj, remember=remember)
         flash("Успешная авторизация", category="success")
         target_page = request.args.get("next", url_for("index"))
         return redirect(target_page)
@@ -92,6 +111,11 @@ def logout():
 @app.route('/')
 def index():
     return render_template('index.html')
+
+@app.route('/profile')
+def profile():
+    user = current_user
+    return render_template('profile.html', user=user)
 
 @app.route('/secret')
 @login_required
@@ -117,6 +141,7 @@ def get_form_data(required_fields):
     return user
 
 @app.route('/user/<int:user_id>/show')
+@check_rights('view_user')
 def show_user(user_id):
     query = 'SELECT users.*, roles.name as role_name FROM users LEFT JOIN roles ON users.role_id = roles.id WHERE users.id = %s'
 
@@ -132,6 +157,7 @@ def show_user(user_id):
 
 @app.route('/users/<int:user_id>/edit', methods=['GET', 'POST'])
 @login_required
+@check_rights('edit_user')
 def edit_user(user_id):
     query = ("SELECT * FROM users where id = %s")
     roles = get_roles()
@@ -162,6 +188,7 @@ def edit_user(user_id):
 
 @app.route('/user/<int:user_id>/delete', methods=["POST"])
 @login_required
+@check_rights('delete_user')
 def delete_user(user_id):
     query = "DELETE FROM users WHERE id=%s"
 
@@ -179,6 +206,7 @@ def delete_user(user_id):
 
 @app.route('/users/new', methods=['GET', 'POST'])
 @login_required
+@check_rights('create_user')
 def create_user():
     user = {}
     roles = get_roles()
@@ -281,6 +309,3 @@ def change_password():
 
 if __name__ == '__main__':
     app.run(debug=True)
-
-
-# почему имеенно %s и как бороться с sql-иньекциями
