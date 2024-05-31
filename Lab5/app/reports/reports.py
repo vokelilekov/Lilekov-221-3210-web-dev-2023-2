@@ -1,4 +1,3 @@
-from app import app
 from flask import Blueprint, render_template, send_file, request
 from app import db_connector
 import csv
