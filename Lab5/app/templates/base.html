@@ -7,6 +7,21 @@
     <title>{% block title %}Лилеков{% endblock %}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
         integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <style>
+        html, body {
+            height: 100%;
+        }
+        body {
+            display: flex;
+            flex-direction: column;
+        }
+        .content {
+            flex: 1;
+        }
+        .footer {
+            flex-shrink: 0;
+        }
+    </style>
 </head>
 
 <body class="bg-warning">
@@ -20,29 +35,27 @@
 
             <div class="collapse navbar-collapse" id="navbarSupportedContent">
                 <ul class="navbar-nav mr-auto">
-                    <!-- Ссылка на страницу "Выйти" -->
                     {% if current_user.is_authenticated %}
                     <li class="nav-item">
                         <a class="nav-link" href="/logout">Выйти</a>
                     </li>
-                    <!-- Ссылка на страницу "Изменить пароль" -->
                     <li class="nav-item">
                         <a class="nav-link" href="/change">Изменить пароль</a>
                     </li>
-                    <!-- Ссылка на страницу "Профиль" только для пользователей -->
+                    <li class="nav-item">
+                        <a class="nav-link" href="/reports/visit_logs">Журнал посещений</a>
+                    </li>
                     {% if current_user.role_name == "User" %}
                     <li class="nav-item">
                         <a class="nav-link" href="/profile">Профиль</a>
                     </li>
                     {% endif %}
-                    <!-- Ссылка на страницу "Пользователи" только для администратора -->
                     {% if current_user.role_name == "Admin" %}
                     <li class="nav-item">
                         <a class="nav-link" href="/users">Пользователи</a>
                     </li>
                     {% endif %}
                     {% else %}
-                    <!-- Ссылка на страницу "Войти" если пользователь не аутентифицирован -->
                     <li class="nav-item">
                         <a class="nav-link" href="/login">Войти</a>
                     </li>
@@ -53,33 +66,32 @@
         </div>
     </nav>
 
-
-    <div class="container mt-4">
+    <div class="content container mt-4">
         {% block content %}
         <div class="container mt-4 text-center">
-        <h2>
-            {% with messages = get_flashed_messages() %}
-                {% if messages %}
-                <div class="card-footer">
-                    <ul class="list-unstyled">
-                        {% for message in messages %}
-                        <li class="text-danger">{{ message }}</li>
-                        {% endfor %}
-                    </ul>
-                </div>
-                {% endif %}
+            <h2>
+                {% with messages = get_flashed_messages() %}
+                    {% if messages %}
+                    <div class="card-footer">
+                        <ul class="list-unstyled">
+                            {% for message in messages %}
+                            <li class="text-danger">{{ message }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    {% endif %}
                 {% endwith %}
-        </h2>
+            </h2>
         </div>
         {% endblock %}
     </div>
 
-    <!-- Футер -->
-    <footer class="footer fixed-bottom py-3 text-center bg-dark text-light">
+    <footer class="footer py-3 text-center bg-dark text-light">
         <div class="container">
             <p>&copy; 2024 Мой проект</p>
         </div>
     </footer>
+
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js"
         integrity="sha384-I7E8VVD/ismYTF4hNIPjVp/Zjvgyol6VFvRkX/vR+Vc4jQkC+hVqc2pM8ODewa9r"
         crossorigin="anonymous"></script>

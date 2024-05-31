@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-5">
+    <h1>Редактировать профиль</h1>
+    <form method="POST" action="{{ url_for('edit_own_profile') }}">
+        <div class="mb-3">
+            <label for="login" class="form-label">Логин</label>
+            <input type="text" class="form-control" id="login" name="login" value="{{ user.login }}" required>
+        </div>
+        <div class="mb-3">
+            <label for="first_name" class="form-label">Имя</label>
+            <input type="text" class="form-control" id="first_name" name="first_name" value="{{ user.first_name }}" required>
+        </div>
+        <div class="mb-3">
+            <label for="last_name" class="form-label">Фамилия</label>
+            <input type="text" class="form-control" id="last_name" name="last_name" value="{{ user.last_name }}" required>
+        </div>
+        <div class="mb-3">
+            <label for="middle_name" class="form-label">Отчество</label>
+            <input type="text" class="form-control" id="middle_name" name="middle_name" value="{{ user.middle_name }}">
+        </div>
+        <button type="submit" class="btn btn-primary">Сохранить изменения</button>
+    </form>
+</div>
+{% endblock %}

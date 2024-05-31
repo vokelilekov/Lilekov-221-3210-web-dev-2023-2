@@ -1,16 +1,18 @@
 from flask import Flask, render_template, redirect, url_for, request, session, flash
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
-from mysqldb import DBConnector
+from app.__init__ import *
 from mysql.connector.errors import DatabaseError
 from werkzeug.security import check_password_hash, generate_password_hash
 import re
 import hashlib
 from functools import wraps
+from app.reports.reports import reports_bp
+from app.decorators import check_rights
 
 app = Flask(__name__)
 application = app
 app.config.from_pyfile('config.py')
-
+app.register_blueprint(reports_bp, url_prefix='/reports')
 db_connector = DBConnector(app)
 
 login_manager = LoginManager()
@@ -27,37 +29,26 @@ class User(UserMixin):
         self.role_id = role_id
         self.role_name = role_name
 
-def check_rights(action):
-    def decorator(f):
-        @wraps(f)
-        def decorated_function(*args, **kwargs):
-            user_role = current_user.role_name
-            allowed_actions = {
-                'Admin': ['create_user', 'edit_user', 'view_user', 'delete_user', 'view_visit_log'],
-                'User': ['edit_own_data', 'view_own_profile', 'view_own_visits']
-            }
-            if action in allowed_actions.get(user_role, []):
-                return f(*args, **kwargs)
-            else:
-                flash('У вас недостаточно прав для доступа к данной странице.', 'danger')
-                return redirect(url_for('index'))
-        return decorated_function
-    return decorator
-
-
-def get_user_list():
-    return [{"user_id": "1", "login": "user", "password": "qwerty"}]
-
-CREATE_USER_FIELDS = ['login', 'password', 'last_name', 'first_name', 'middle_name', 'role_id']
-EDIT_USER_FIELDS = ['last_name', 'first_name', 'middle_name', 'role_id']
-
 def get_roles():
-    query = "SELECT * FROM roles"
-
+    query = "SELECT id, name FROM roles"
     with db_connector.connect().cursor(named_tuple=True) as cursor:
         cursor.execute(query)
         roles = cursor.fetchall()
     return roles
+
+@app.before_request
+def log_visit():
+    if request.endpoint not in ('static', 'login', 'logout'):
+        user_id = current_user.id if current_user.is_authenticated else None
+        query = "INSERT INTO visit_logs (path, user_id) VALUES (%s, %s)"
+        try:
+            with db_connector.connect().cursor(named_tuple=True) as cursor:
+                cursor.execute(query, (request.path, user_id))
+                db_connector.connect().commit()
+                cursor.fetchall()
+        except DatabaseError as error:
+            print(f"Error logging visit: {error}")
+
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -69,9 +60,9 @@ def load_user(user_id):
             if user_data:
                 return User(user_id=user_data.id, login=user_data.login, role_id=user_data.role_id, role_name=user_data.role_name, password_hash=user_data.password_hash)
             else:
-                print("No user found with ID:", user_id)  # Добавьте логирование или print для отладки
+                print("No user found with ID:", user_id)
     except Exception as e:
-        print("Database error:", e)  # Логирование ошибок базы данных
+        print("Database error:", e) 
     return None
 
 @app.route('/login', methods=["GET", "POST"])
@@ -92,7 +83,6 @@ def auth():
         user = cursor.fetchone()
 
     if user:
-        # Создайте объект User, используя все необходимые поля
         user_obj = User(user_id=user.id, login=user.login, role_id=user.role_id, role_name=user.role_name, password_hash=user.password_hash)
         login_user(user_obj, remember=remember)
         flash("Успешная авторизация", category="success")
@@ -113,9 +103,56 @@ def index():
     return render_template('index.html')
 
 @app.route('/profile')
+@login_required
 def profile():
-    user = current_user
-    return render_template('profile.html', user=user)
+    query = """
+    SELECT users.id, users.login, users.first_name, users.last_name, users.middle_name, roles.name as role_name
+    FROM users
+    JOIN roles ON users.role_id = roles.id
+    WHERE users.id = %s
+    """
+    with db_connector.connect().cursor(named_tuple=True) as cursor:
+        cursor.execute(query, (current_user.id,))
+        user = cursor.fetchone()
+    
+    if user:
+        return render_template('profile.html', user=user)
+    else:
+        flash('Пользователь не найден', 'danger')
+        return redirect(url_for('index'))
+
+@login_required
+@app.route('/profile/edit', methods=['GET', 'POST'])
+def edit_own_profile():
+    user_id = current_user.id
+
+    if request.method == 'POST':
+        first_name = request.form.get('first_name')
+        last_name = request.form.get('last_name')
+        middle_name = request.form.get('middle_name')
+        login = request.form.get('login')
+
+        query = """
+        UPDATE users
+        SET first_name = %s, last_name = %s, middle_name = %s, login = %s
+        WHERE id = %s
+        """
+        try:
+            with db_connector.connect().cursor(named_tuple=True) as cursor:
+                cursor.execute(query, (first_name, last_name, middle_name, login, user_id))
+                db_connector.connect().commit()
+                flash('Ваш профиль был успешно обновлен', 'success')
+                return redirect(url_for('profile'))
+        except DatabaseError as error:
+            flash(f'Ошибка обновления профиля! {error}', 'danger')
+            db_connector.connect().rollback()
+
+    query = "SELECT id, login, first_name, last_name, middle_name FROM users WHERE id = %s"
+    with db_connector.connect().cursor(named_tuple=True) as cursor:
+        cursor.execute(query, (user_id,))
+        user = cursor.fetchone()
+
+    return render_template('edit_profile.html', user=user)
 
 @app.route('/secret')
 @login_required
