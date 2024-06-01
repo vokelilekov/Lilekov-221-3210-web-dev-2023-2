@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<form method="get">
+    <label for="sort">Сортировка:</label>
+    <select id="sort" name="sort">
+        <option value="newest" {% if sort_order=='newest' %}selected{% endif %}>По новизне</option>
+        <option value="positive" {% if sort_order=='positive' %}selected{% endif %}>Сначала положительные</option>
+        <option value="negative" {% if sort_order=='negative' %}selected{% endif %}>Сначала отрицательные</option>
+    </select>
+    <button type="submit">Применить</button>
+</form>
+
+{% for review in reviews %}
+<div>
+    <p><strong>{{ review.user.full_name }}</strong> - {{ review.created_at.strftime('%d.%m.%Y') }}</p>
+    <p>Оценка: {{ review.rating }}</p>
+    <p>{{ review.text }}</p>
+</div>
+{% endfor %}
+
+<div>
+    {% if pagination.has_prev %}
+    <a
+        href="{{ url_for('courses.reviews', course_id=course.id, page=pagination.prev_num, sort=sort_order) }}">Предыдущая</a>
+    {% endif %}
+    {% if pagination.has_next %}
+    <a
+        href="{{ url_for('courses.reviews', course_id=course.id, page=pagination.next_num, sort=sort_order) }}">Следующая</a>
+    {% endif %}
+</div>
+
+<form class="card my-5" method="post" action="{{ url_for('courses.create_review', course_id=course.id) }}">
+    <label for="rating">Оценка:</label>
+    <select id="rating" name="rating">
+        <option value="5">Отлично</option>
+        <option value="4">Хорошо</option>
+        <option value="3">Удовлетворительно</option>
+        <option value="2">Неудовлетворительно</option>
+        <option value="1">Плохо</option>
+        <option value="0">Ужасно</option>
+    </select>
+    <label for="text">Текст отзыва:</label>
+    <textarea id="text" name="text"></textarea>
+    <button class="mt-5" type="submit">Отправить</button>
+</form>
+{% endblock %}

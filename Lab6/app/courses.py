@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request, flash, redirect, url_for
 from flask_login import login_required
 from sqlalchemy.exc import IntegrityError
-from models import db, Course, Category, User
+from models import db, Course, Category, User, Review
 from tools import CoursesFilter, ImageSaver
 
 bp = Blueprint('courses', __name__, url_prefix='/courses')
@@ -73,4 +73,40 @@ def create():
 @bp.route('/<int:course_id>')
 def show(course_id):
     course = db.get_or_404(Course, course_id)
-    return render_template('courses/show.html', course=course)
+    reviews = db.session.execute(db.select(Review).filter_by(course_id=course_id).order_by(Review.created_at.desc()).limit(5)).scalars().all()
+    return render_template('courses/show.html', course=course, reviews=reviews)
+
+@bp.route('/<int:course_id>/reviews')
+def reviews(course_id):
+    course = db.get_or_404(Course, course_id)
+    sort_order = request.args.get('sort', 'newest')
+    query = db.select(Review).filter_by(course_id=course_id)
+
+    if sort_order == 'positive':
+        query = query.order_by(Review.rating.desc())
+    elif sort_order == 'negative':
+        query = query.order_by(Review.rating.asc())
+    else:
+        query = query.order_by(Review.created_at.desc())
+
+    pagination = db.paginate(query, per_page=10)
+    reviews = pagination.items
+
+    return render_template('courses/reviews.html', course=course, reviews=reviews, pagination=pagination, sort_order=sort_order)
+
+@bp.route('/<int:course_id>/reviews/create', methods=['POST'])
+@login_required
+def create_review(course_id):
+    rating = request.form.get('rating')
+    text = request.form.get('text')
+    review = Review(rating=rating, text=text, course_id=course_id, user_id=current_user.id)
+    db.session.add(review)
+    db.session.commit()
+    
+    # Пересчёт рейтинга курса
+    course = db.get_or_404(Course, course_id)
+    course.rating_sum += int(rating)
+    course.rating_num += 1
+    db.session.commit()
+    
+    return redirect(url_for('courses.show', course_id=course_id))

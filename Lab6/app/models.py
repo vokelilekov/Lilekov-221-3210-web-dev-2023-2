@@ -43,7 +43,7 @@ class User(Base, UserMixin):
     login: Mapped[str] = mapped_column(String(100), unique=True)
     password_hash: Mapped[str] = mapped_column(String(200))
     created_at: Mapped[datetime] = mapped_column(default=datetime.now)
-
+    reviews: Mapped[List["Review"]] = relationship("Review", back_populates="user")
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
 
@@ -70,7 +70,7 @@ class Course(Base):
     author_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
     background_image_id: Mapped[str] = mapped_column(ForeignKey("images.id"))
     created_at: Mapped[datetime] = mapped_column(default=datetime.now)
-
+    reviews: Mapped[List["Review"]] = relationship("Review", back_populates="course")
     author: Mapped["User"] = relationship()
     category: Mapped["Category"] = relationship(lazy=False)
     bg_image: Mapped["Image"] = relationship()
@@ -106,3 +106,17 @@ class Image(db.Model):
     @property
     def url(self):
         return url_for('image', image_id=self.id)
+
+class Review(Base):
+    __tablename__ = 'reviews'
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    rating: Mapped[int] = mapped_column(Integer, nullable=False)
+    text: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(default=datetime.now)
+    course_id: Mapped[int] = mapped_column(ForeignKey("courses.id"))
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+
+    course: Mapped["Course"] = relationship("Course", back_populates="reviews")
+    user: Mapped["User"] = relationship("User", back_populates="reviews")
+    
