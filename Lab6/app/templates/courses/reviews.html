@@ -1,47 +1,86 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<form method="get">
-    <label for="sort">Сортировка:</label>
-    <select id="sort" name="sort">
-        <option value="newest" {% if sort_order=='newest' %}selected{% endif %}>По новизне</option>
-        <option value="positive" {% if sort_order=='positive' %}selected{% endif %}>Сначала положительные</option>
-        <option value="negative" {% if sort_order=='negative' %}selected{% endif %}>Сначала отрицательные</option>
-    </select>
-    <button type="submit">Применить</button>
-</form>
+<div class="container mt-5">
+    <form method="get" class="mb-4">
+        <div class="form-group">
+            <label for="sort">Сортировка:</label>
+            <select id="sort" name="sort" class="form-control">
+                <option value="newest" {% if sort_order=='newest' %}selected{% endif %}>По новизне</option>
+                <option value="positive" {% if sort_order=='positive' %}selected{% endif %}>Сначала положительные</option>
+                <option value="negative" {% if sort_order=='negative' %}selected{% endif %}>Сначала отрицательные</option>
+            </select>
+        </div>
+        <button type="submit" class="btn btn-primary mt-2">Применить</button>
+    </form>
 
-{% for review in reviews %}
-<div>
-    <p><strong>{{ review.user.full_name }}</strong> - {{ review.created_at.strftime('%d.%m.%Y') }}</p>
-    <p>Оценка: {{ review.rating }}</p>
-    <p>{{ review.text }}</p>
-</div>
-{% endfor %}
+    <div class="row">
+        {% for review in reviews %}
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">{{ review.user.full_name }}</h5>
+                    <h6 class="card-subtitle mb-2 text-muted">{{ review.created_at.strftime('%d.%m.%Y') }}</h6>
+                    <p class="card-text">Оценка: <span class="text-warning">★</span> {{ review.rating }}</p>
+                    <p class="card-text">{{ review.text }}</p>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
 
-<div>
-    {% if pagination.has_prev %}
-    <a
-        href="{{ url_for('courses.reviews', course_id=course.id, page=pagination.prev_num, sort=sort_order) }}">Предыдущая</a>
+    <nav aria-label="Page navigation example">
+        <ul class="pagination justify-content-center">
+            {% if pagination.has_prev %}
+            <li class="page-item">
+                <a class="page-link" href="{{ url_for('courses.reviews', course_id=course.id, page=pagination.prev_num, sort=sort_order) }}">Предыдущая</a>
+            </li>
+            {% endif %}
+            {% if pagination.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="{{ url_for('courses.reviews', course_id=course.id, page=pagination.next_num, sort=sort_order) }}">Следующая</a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+
+    {% if current_user.is_authenticated %}
+        {% if user_review %}
+        <div class="card my-5">
+            <div class="card-body">
+                <h5 class="card-title">Ваш отзыв</h5>
+                <h6 class="card-subtitle mb-2 text-muted">{{ user_review.created_at.strftime('%d.%m.%Y') }}</h6>
+                <p class="card-text">Оценка: <span class="text-warning">★</span> {{ user_review.rating }}</p>
+                <p class="card-text">{{ user_review.text }}</p>
+            </div>
+        </div>
+        {% else %}
+        <div class="card my-5">
+            <div class="card-body">
+                <h5 class="card-title">Оставить отзыв</h5>
+                <form method="post" action="{{ url_for('courses.create_review', course_id=course.id) }}">
+                    <div class="form-group">
+                        <label for="rating">Оценка:</label>
+                        <select id="rating" name="rating" class="form-control mb-3">
+                            <option value="5">Отлично</option>
+                            <option value="4">Хорошо</option>
+                            <option value="3">Удовлетворительно</option>
+                            <option value="2">Неудовлетворительно</option>
+                            <option value="1">Плохо</option>
+                            <option value="0">Ужасно</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="text">Текст отзыва:</label>
+                        <textarea id="text" name="text" class="form-control mb-3" rows="3"></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Отправить</button>
+                </form>
+            </div>
+        </div>
+        {% endif %}
+    {% else %}
+    <p class="text-center">Пожалуйста, <a href="{{ url_for('auth.login') }}">войдите</a> для того, чтобы оставить отзыв.</p>
     {% endif %}
-    {% if pagination.has_next %}
-    <a
-        href="{{ url_for('courses.reviews', course_id=course.id, page=pagination.next_num, sort=sort_order) }}">Следующая</a>
-    {% endif %}
 </div>
-
-<form class="card my-5" method="post" action="{{ url_for('courses.create_review', course_id=course.id) }}">
-    <label for="rating">Оценка:</label>
-    <select id="rating" name="rating">
-        <option value="5">Отлично</option>
-        <option value="4">Хорошо</option>
-        <option value="3">Удовлетворительно</option>
-        <option value="2">Неудовлетворительно</option>
-        <option value="1">Плохо</option>
-        <option value="0">Ужасно</option>
-    </select>
-    <label for="text">Текст отзыва:</label>
-    <textarea id="text" name="text"></textarea>
-    <button class="mt-5" type="submit">Отправить</button>
-</form>
 {% endblock %}

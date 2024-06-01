@@ -84,27 +84,42 @@
 
 <div class="container mt-5">
     {% if current_user.is_authenticated %}
-    <h3 class="text-center">Оставить отзыв</h3>
-    <form method="post" action="{{ url_for('courses.create_review', course_id=course.id) }}" class="mb-5">
-        <div class="form-group">
-            <label for="rating">Оценка:</label>
-            <select id="rating" name="rating" class="form-control mb-3">
-                <option value="5">Отлично</option>
-                <option value="4">Хорошо</option>
-                <option value="3">Удовлетворительно</option>
-                <option value="2">Неудовлетворительно</option>
-                <option value="1">Плохо</option>
-                <option value="0">Ужасно</option>
-            </select>
+        {% if user_review %}
+        <div class="card my-5">
+            <div class="card-body">
+                <h5 class="card-title">Ваш отзыв</h5>
+                <h6 class="card-subtitle mb-2 text-muted">{{ user_review.created_at.strftime('%d.%m.%Y') }}</h6>
+                <p class="card-text">Оценка: <span class="text-warning">★</span> {{ user_review.rating }}</p>
+                <p class="card-text">{{ user_review.text }}</p>
+            </div>
         </div>
-        <div class="form-group">
-            <label for="text">Текст отзыва:</label>
-            <textarea id="text" name="text" class="form-control mb-3" rows="3"></textarea>
+        {% else %}
+        <div class="card my-5">
+            <div class="card-body">
+                <h5 class="card-title">Оставить отзыв</h5>
+                <form method="post" action="{{ url_for('courses.create_review', course_id=course.id) }}" class="mb-5">
+                    <div class="form-group">
+                        <label for="rating">Оценка:</label>
+                        <select id="rating" name="rating" class="form-control mb-3">
+                            <option value="5">Отлично</option>
+                            <option value="4">Хорошо</option>
+                            <option value="3">Удовлетворительно</option>
+                            <option value="2">Неудовлетворительно</option>
+                            <option value="1">Плохо</option>
+                            <option value="0">Ужасно</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="text">Текст отзыва:</label>
+                        <textarea id="text" name="text" class="form-control mb-3" rows="3"></textarea>
+                    </div>
+                    <div class="text-center">
+                        <button type="submit" class="btn btn-primary">Отправить</button>
+                    </div>
+                </form>
+            </div>
         </div>
-        <div class="text-center">
-            <button type="submit" class="btn btn-primary">Отправить</button>
-        </div>
-    </form>
+        {% endif %}
     {% else %}
     <p class="text-center">Пожалуйста, <a href="{{ url_for('auth.login') }}">войдите</a> для того, чтобы оставить отзыв.</p>
     {% endif %}

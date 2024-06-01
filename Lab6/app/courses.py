@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template, request, flash, redirect, url_for
-from flask_login import login_required
+from flask_login import login_required, current_user
 from sqlalchemy.exc import IntegrityError
 from models import db, Course, Category, User, Review
 from tools import CoursesFilter, ImageSaver
@@ -73,8 +73,18 @@ def create():
 @bp.route('/<int:course_id>')
 def show(course_id):
     course = db.get_or_404(Course, course_id)
-    reviews = db.session.execute(db.select(Review).filter_by(course_id=course_id).order_by(Review.created_at.desc()).limit(5)).scalars().all()
-    return render_template('courses/show.html', course=course, reviews=reviews)
+    reviews = db.session.execute(
+        db.select(Review).filter_by(course_id=course_id).order_by(Review.created_at.desc()).limit(5)
+    ).scalars().all()
+    
+    user_review = None
+    if current_user.is_authenticated:
+        user_review = db.session.execute(
+            db.select(Review).filter_by(course_id=course_id, user_id=current_user.id)
+        ).scalar()
+
+    return render_template('courses/show.html', course=course, reviews=reviews, user_review=user_review)
+
 
 @bp.route('/<int:course_id>/reviews')
 def reviews(course_id):
@@ -92,7 +102,14 @@ def reviews(course_id):
     pagination = db.paginate(query, per_page=10)
     reviews = pagination.items
 
-    return render_template('courses/reviews.html', course=course, reviews=reviews, pagination=pagination, sort_order=sort_order)
+    user_review = None
+    if current_user.is_authenticated:
+        user_review = db.session.execute(
+            db.select(Review).filter_by(course_id=course_id, user_id=current_user.id)
+        ).scalar()
+
+    return render_template('courses/reviews.html', course=course, reviews=reviews, pagination=pagination, sort_order=sort_order, user_review=user_review)
+
 
 @bp.route('/<int:course_id>/reviews/create', methods=['POST'])
 @login_required
