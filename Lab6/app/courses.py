@@ -114,16 +114,24 @@ def reviews(course_id):
 @bp.route('/<int:course_id>/reviews/create', methods=['POST'])
 @login_required
 def create_review(course_id):
+    existing_review = db.session.execute(
+        db.select(Review).filter_by(course_id=course_id, user_id=current_user.id)
+    ).scalar()
+
+    if existing_review:
+        flash('Вы уже оставили отзыв для этого курса.', 'danger')
+        return redirect(url_for('courses.show', course_id=course_id))
+
     rating = request.form.get('rating')
     text = request.form.get('text')
     review = Review(rating=rating, text=text, course_id=course_id, user_id=current_user.id)
     db.session.add(review)
     db.session.commit()
     
-    # Пересчёт рейтинга курса
     course = db.get_or_404(Course, course_id)
     course.rating_sum += int(rating)
     course.rating_num += 1
     db.session.commit()
     
+    flash('Ваш отзыв был успешно добавлен!', 'success')
     return redirect(url_for('courses.show', course_id=course_id))
